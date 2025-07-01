@@ -6,16 +6,6 @@ import threading
 import argparse
 from colorama import Fore, Style
 
-print(Fore.CYAN + """
-  
-                      __                                             
-    ____  ____  _____/ /_      ______________ _____  ____  ___  _____
-   / __ \/ __ \/ ___/ __/_____/ ___/ ___/ __ `/ __ \/ __ \/ _ \/ ___/
-  / /_/ / /_/ / /  / /_/_____(__  ) /__/ /_/ / / / / / / /  __/ /    
- / .___/\____/_/   \__/     /____/\___/\__,_/_/ /_/_/ /_/\___/_/     
-/_/                                                                        
-                                                             
-"""+Style.RESET_ALL)
 
 parser = argparse.ArgumentParser(description="Simple Port Scanner")
 parser.add_argument("host", help="Target IP or hostname")
