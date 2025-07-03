@@ -1,1 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cybernetic Scanner</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!--
+    ==================================================================
+    == CSS STYLESHEET ==
+    ==================================================================
+    -->
+    <style>
+        :root {
+            --bg-color: #010409;
+            --panel-bg: #0d1117;
+            --border-color: #30363d;
+            --text-color: #e6edf3;
+            --neon-green: #39d353;
+            --dark-green: #2ea043;
+            --cyan: #39c5d3;
+            --red: #f85149;
+            --orange: #e36209;
+            --font-main: 'Exo 2', sans-serif;
+            --font-mono: 'Roboto Mono', monospace;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes scan-pulse {
+            from { background-color: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
+            to { background-color: var(--neon-green); box-shadow: 0 0 15px var(--neon-green); }
+        }
 
+        * { box-sizing: border-box; }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-mono); margin: 0; padding: 20px; animation: fadeIn 1s ease-in-out; }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        @media (min-width: 1024px) {
+            .main-grid { grid-template-columns: 380px 1fr; }
+        }
+        
+        .left-panel, .right-panel { display: flex; flex-direction: column; gap: 20px; }
+        
+        .panel { background-color: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 25px; }
+        .panel-header { text-align: center; margin-bottom: 20px; }
+        .panel-header h1 { font-family: var(--font-main); color: var(--cyan); font-size: 2rem; margin: 0; letter-spacing: 2px; text-transform: uppercase; }
+
+        .form-group { display: flex; flex-direction: column; margin-bottom: 20px; }
+        .form-group label { margin-bottom: 8px; font-size: 0.9rem; color: #8b949e; }
+        .form-group input { background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; color: var(--text-color); font-family: var(--font-mono); font-size: 1rem; transition: border-color 0.2s, box-shadow 0.2s; }
+        .form-group input:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 8px -1px var(--cyan); }
+
+        .scan-modes { display: flex; justify-content: center; gap: 20px; background: var(--bg-color); padding: 15px; border-radius: 6px; border: 1px dashed var(--border-color); margin-bottom: 20px;}
+        .scan-modes label { display: flex; align-items: center; cursor: pointer; color: #8b949e; transition: color 0.2s; }
+        .scan-modes input { appearance: none; width: 1.2em; height: 1.2em; border: 2px solid var(--border-color); border-radius: 50%; margin-right: 10px; transition: border-color 0.2s; cursor: pointer; display: grid; place-content: center; }
+        .scan-modes input::before { content: ''; width: 0.6em; height: 0.6em; border-radius: 50%; background-color: var(--neon-green); transform: scale(0); transition: transform 0.2s; }
+        .scan-modes input:checked { border-color: var(--neon-green); }
+        .scan-modes input:checked::before { transform: scale(1); }
+        .scan-modes label:hover, .scan-modes input:checked + span { color: var(--text-color); }
+        
+        #scan-button { background-color: var(--dark-green); color: white; border: 1px solid rgba(240, 246, 252, 0.1); border-radius: 6px; padding: 14px 24px; font-family: var(--font-main); font-size: 1.2rem; font-weight: 700; cursor: pointer; transition: all 0.2s; letter-spacing: 1px; width: 100%; }
+        #scan-button:hover:not(:disabled) { background-color: var(--neon-green); color: var(--bg-color); box-shadow: 0 0 15px -2px var(--neon-green); }
+        #scan-button:disabled { background-color: #30363d; cursor: wait; opacity: 0.7; }
+
+        .info-box h3 { margin: 0 0 10px 0; font-family: var(--font-main); color: var(--cyan); font-size: 1rem; text-transform: uppercase; }
+        #target-info, #threat-level { font-size: 0.9rem; color: var(--text-color); word-break: break-all; }
+        #threat-level { font-weight: bold; }
+
+        .terminal { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: inset 0 0 15px rgba(0,0,0,0.5); display: flex; flex-direction: column; flex-grow: 1; }
+        .terminal-header { background: #161b22; padding: 10px 15px; border-bottom: 1px solid var(--border-color); border-top-left-radius: 7px; border-top-right-radius: 7px; display: flex; justify-content: space-between; align-items: center; }
+        .terminal-title { font-family: var(--font-main); color: #8b949e; }
+        .scan-indicator { width: 100px; height: 8px; background: #30363d; border-radius: 4px; overflow: hidden; }
+        .scan-indicator-bar { width: 100%; height: 100%; background: var(--cyan); opacity: 0; transition: opacity 0.5s; transform: translateX(-100%); }
+        .scan-indicator.scanning .scan-indicator-bar { opacity: 1; animation: scan-pulse 1s linear infinite alternate; }
+
+        #log-output { flex-grow: 1; overflow-y: auto; padding: 15px; font-size: 0.9rem; line-height: 1.7; }
+        
+        /* NEW BEAUTIFUL LOG STYLES */
+        .log-line { display: flex; align-items: center; margin-bottom: 4px; animation: fadeIn 0.5s ease; }
+        .log-symbol { font-weight: bold; width: 25px; }
+        .log-port { font-weight: bold; width: 150px; }
+        .log-status { font-weight: bold; width: 120px; }
+        .log-service { color: #8b949e; }
+        .log-line .log-info { color: #8b949e; font-style: italic; }
+        .log-line .log-summary { color: var(--cyan); font-weight: bold; }
+        
+        .status-open, .symbol-open { color: var(--neon-green); }
+        .status-closed, .symbol-closed { color: var(--red); }
+        .status-filtered, .symbol-filtered { color: var(--orange); }
+        .status-skipped, .symbol-skipped { color: #8b949e; }
+        
+        #log-output pre { color: var(--cyan); font-size: 0.8rem; margin: 0 0 20px 0; text-align: center; }
+
+        #log-output::-webkit-scrollbar { width: 10px; }
+        #log-output::-webkit-scrollbar-track { background: var(--bg-color); }
+        #log-output::-webkit-scrollbar-thumb { background-color: var(--border-color); border-radius: 10px; }
+        #log-output::-webkit-scrollbar-thumb:hover { background-color: var(--cyan); }
+    </style>
+</head>
+<body>
+    <div class="main-grid">
+        <div class="left-panel">
+            <div class="panel">
+                <div class="panel-header"><h1>CONTROL</h1></div>
+                <div class="form-group"><label for="host-input">Target Host</label><input type="text" id="host-input" value="scanme.nmap.org"></div>
+                <div class="form-group"><label for="ports-input">Ports (e.g., 22, 80, 443, 1000-2000)</label><input type="text" id="ports-input" value="22, 80, 443, 8080"></div>
+                <div class="scan-modes">
+                    <label><input type="radio" name="scan-mode" value="stealth" checked> <span>Stealth Scan</span></label>
+                    <label><input type="radio" name="scan-mode" value="aggressive"> <span>Aggressive Scan</span></label>
+                </div>
+                <button id="scan-button">INITIATE SCAN</button>
+            </div>
+            <div class="panel">
+                <div class="info-box"><h3>Target Intel</h3><div id="target-info">Awaiting Target...</div></div>
+                <hr style="border-color: var(--border-color); border-style: dashed;">
+                <div class="info-box"><h3>Threat Analysis</h3><div id="threat-level">STANDBY</div></div>
+            </div>
+        </div>
+        <div class="right-panel">
+            <div class="terminal">
+                <div class="terminal-header">
+                    <div class="terminal-title">SCAN LOGS</div>
+                    <div class="scan-indicator" id="scan-indicator"><div class="scan-indicator-bar"></div></div>
+                </div>
+                <div id="log-output"></div>
+            </div>
+        </div>
+    </div>
+    <!--
+    ==================================================================
+    == JAVASCRIPT LOGIC ==
+    ==================================================================
+    -->
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const hostInput = document.getElementById('host-input');
+        const portsInput = document.getElementById('ports-input');
+        const scanButton = document.getElementById('scan-button');
+        const logOutput = document.getElementById('log-output');
+        const targetInfo = document.getElementById('target-info');
+        const threatLevel = document.getElementById('threat-level');
+        const scanIndicator = document.getElementById('scan-indicator');
+        let isScanning = false;
+
+        const soundFX = (() => {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+            function play(freq, vol, dur, type) { if (audioCtx.state === 'suspended') return; const o = audioCtx.createOscillator(), g = audioCtx.createGain(); o.type = type || 'sine', o.frequency.setValueAtTime(freq, audioCtx.currentTime), g.gain.setValueAtTime(vol, audioCtx.currentTime), g.gain.exponentialRampToValueAtTime(1e-4, audioCtx.currentTime + dur), o.connect(g), g.connect(audioCtx.destination), o.start(), o.stop(audioCtx.currentTime + dur); }
+            return { start: () => play(200, .1, .2, 'square'), open: () => play(880, .1, .1, 'triangle'), error: () => play(100, .15, .3, 'sawtooth'), key: () => { if (!isScanning) play(600, .05, .05, 'triangle'); } };
+        })();
+
+        const COMMON_SERVICES = {21:'FTP', 22:'SSH', 23:'Telnet', 25:'SMTP', 53:'DNS', 80:'HTTP', 110:'POP3', 135:'MS-RPC', 143:'IMAP', 443:'HTTPS', 445:'SMB', 1433:'MSSQL', 3306:'MySQL', 3389:'RDP', 5900:'VNC', 8080:'HTTP-Alt', 8443:'HTTPS-Alt'};
+        
+        hostInput.addEventListener('input', () => updateTargetInfo(hostInput.value.trim()));
+        hostInput.addEventListener('keydown', soundFX.key);
+        portsInput.addEventListener('keydown', soundFX.key);
+        updateTargetInfo(hostInput.value.trim());
+
+        scanButton.addEventListener('click', () => {
+            if (isScanning) return;
+            const host = hostInput.value.trim();
+            const portsStr = portsInput.value.trim();
+            const mode = document.querySelector('input[name="scan-mode"]:checked').value;
+            if (!host || !portsStr) { simpleLog('Target Host and Ports are required.', 'error'); soundFX.error(); return; }
+            
+            try {
+                const ports = parsePorts(portsStr);
+                if (ports.length === 0) { simpleLog('Invalid port(s) specified.', 'error'); soundFX.error(); return; }
+                runScan(host, ports, mode);
+            } catch (error) {
+                simpleLog(error.message, 'error');
+                soundFX.error();
+            }
+        });
+
+        function parsePorts(portsStr) {
+            const ports = new Set();
+            const parts = portsStr.split(',');
+            for (const part of parts) {
+                const trimmedPart = part.trim();
+                if (trimmedPart.includes('-')) {
+                    const [start, end] = trimmedPart.split('-').map(p => parseInt(p, 10));
+                    if (isNaN(start) || isNaN(end) || start <= 0 || end > 65535 || start >= end) {
+                        throw new Error(`Invalid port range: ${trimmedPart}`);
+                    }
+                    for (let i = start; i <= end; i++) ports.add(i);
+                } else {
+                    const port = parseInt(trimmedPart, 10);
+                    if (isNaN(port) || port <= 0 || port > 65535) throw new Error(`Invalid port: ${trimmedPart}`);
+                    ports.add(port);
+                }
+            }
+            return Array.from(ports).sort((a, b) => a - b);
+        }
+
+        function log(data) {
+            const line = document.createElement('div');
+            line.className = 'log-line';
+
+            const symbol = document.createElement('span');
+            symbol.className = `log-symbol symbol-${data.status.toLowerCase()}`;
+            symbol.textContent = {Open: '[+]', Closed: '[-]', Filtered: '[?]', Skipped: '[~]'}[data.status] || '[!]';
+            
+            const port = document.createElement('span');
+            port.className = 'log-port';
+            port.textContent = `${data.port}/TCP`;
+
+            const status = document.createElement('span');
+            status.className = `log-status status-${data.status.toLowerCase()}`;
+            status.textContent = data.status.toUpperCase();
+            
+            const service = document.createElement('span');
+            service.className = 'log-service';
+            service.textContent = data.service;
+
+            line.append(symbol, port, status, service);
+            logOutput.appendChild(line);
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+        
+        function simpleLog(message, type = 'info') {
+            const line = document.createElement('div');
+            line.className = `log-line`;
+            const span = document.createElement('span');
+            span.className = `log-${type}`;
+            span.textContent = message;
+            line.appendChild(span);
+            logOutput.appendChild(line);
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+
+        function updateTargetInfo(host) {
+            if (!host) { targetInfo.textContent = 'Awaiting Target...'; threatLevel.textContent = 'STANDBY'; threatLevel.style.color = ''; return; }
+            let geo = 'Unknown Location';
+            let threat = 'Low';
+            let color = 'var(--neon-green)';
+            if (/(google|amazon|cloud)/i.test(host)) { geo = 'Corporate Mainframe'; threat = 'Critical'; color = 'var(--red)'; }
+            else if (/\.gov/.test(host)) { geo = 'Government Network'; threat = 'High'; color = 'var(--orange)'; }
+            else if (/scanme\.nmap\.org/.test(host)) { geo = 'Nmap Test Server'; threat = 'Minimal'; color = 'var(--cyan)'; }
+            targetInfo.textContent = `${host} (${geo})`;
+            threatLevel.textContent = threat.toUpperCase();
+            threatLevel.style.color = color;
+        }
+
+        async function runScan(host, ports, mode) {
+            isScanning = true;
+            scanButton.disabled = true;
+            scanButton.textContent = 'SCAN IN PROGRESS...';
+            logOutput.innerHTML = '';
+            scanIndicator.classList.add('scanning');
+            soundFX.start();
+          
+            simpleLog('Initializing CyberNET Scanner v3.0...', 'summary');
+            await new Promise(r => setTimeout(r, 500));
+            simpleLog(`Target locked: ${host}`, 'summary');
+            await new Promise(r => setTimeout(r, 500));
+            simpleLog(`Scan mode engaged: ${mode.toUpperCase()}`, 'summary');
+            simpleLog('-----------------------------------------', 'info');
+
+            let openPorts = 0;
+            for (const port of ports) {
+                const result = await scanPort(host, port, mode);
+                if (result.status === 'Open') openPorts++;
+                log(result);
+            }
+            
+            simpleLog('-----------------------------------------', 'info');
+            simpleLog(`Scan complete. Found ${openPorts} open port(s).`, 'summary');
+            isScanning = false;
+            scanButton.disabled = false;
+            scanButton.textContent = 'INITIATE SCAN';
+            scanIndicator.classList.remove('scanning');
+        }
+
+        async function scanPort(host, port, mode) {
+            let status;
+            const service = COMMON_SERVICES[port] || 'unknown';
+            const webPorts = [80, 443, 8080, 8443];
+
+            if (mode === 'stealth') {
+                if (webPorts.includes(port)) {
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 2000);
+                        await fetch(`${port === 443 || port === 8443 ? 'https' : 'http'}://${host}:${port}`, { mode: 'no-cors', signal: controller.signal });
+                        clearTimeout(timeoutId);
+                        status = 'Open';
+                        soundFX.open();
+                    } catch (e) { status = 'Closed'; }
+                } else { status = 'Skipped'; }
+            } else { // Aggressive Mode (Simulation)
+                await new Promise(resolve => setTimeout(resolve, Math.random() * 50 + 20));
+                const rand = Math.random();
+                if (rand < 0.25) { status = 'Open'; soundFX.open(); }
+                else if (rand < 0.85) { status = 'Closed'; }
+                else { status = 'Filtered'; }
+            }
+            return { port, status, service };
+        }
+    });
+    </script>
+</body>
+</html>
